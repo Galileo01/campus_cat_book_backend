@@ -1,0 +1,25 @@
+{
+  "name": "campus_cat_book_backend",
+  "version": "1.0.0",
+  "description": "campus_cat_book(校园猫猫图鉴的) 后台应用程序",
+  "main": "app.js",
+  "scripts": {
+    "dev": "nodemon app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Galileo01/campus_cat_book_backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Galileo01/campus_cat_book_backend/issues"
+  },
+  "homepage": "https://github.com/Galileo01/campus_cat_book_backend#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mongoose": "^5.10.0",
+    "multer": "^1.4.2"
+  }
+}
