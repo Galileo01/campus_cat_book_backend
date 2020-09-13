@@ -10,12 +10,12 @@ mongoose.connection.on('open', async () => {
 
 
 function connect() {
-
     //本地测试
-    mongoose.connect('mongodb://127.0.0.1/campus_cat_book', { useUnifiedTopology: true, useNewUrlParser: true });
+    // mongoose.connect('mongodb://127.0.0.1/campus_cat_book', { useUnifiedTopology: true, useNewUrlParser: true });
     //服务器环境需要身份验证
-    // mongoose.connect('mongodb://admin:pass@127.0.0.1/campus_cat_book?authSource=admin', { useUnifiedTopology: true, useNewUrlParser: true });
+    mongoose.connect('mongodb://admin:pass@127.0.0.1/campus_cat_book?authSource=admin', { useUnifiedTopology: true, useNewUrlParser: true });
     //测试连接 远程 服务器 mongodb
+  
     // console.log(mongoose.connection.base);
     // const { modelSchemas } = mongoose.connection.base;
     // for(const prop in modelSchemas)

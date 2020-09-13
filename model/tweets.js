@@ -13,9 +13,9 @@ const tweetsSchema = new mongoose.Schema({
         default: ''
     },
     //动态话题
-    topic: {
-        type: String,
-        default: ''
+    topics: {
+        type: Array,
+        default: []
     },
     imgs: {
         type: Array,

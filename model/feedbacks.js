@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bugsSchema = new mongoose.Schema({
+const feedbacksSchema = new mongoose.Schema({
     user: {
         type: String,
         required:true
@@ -12,7 +12,7 @@ const bugsSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
-    //bug 处理状态
+    //bug/反馈  处理状态
     state: {
         type: Boolean,
         default: false
@@ -21,7 +21,7 @@ const bugsSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    //描述 bug 的截图 最多4张
+    //描述 bug/反馈 的截图 最多3张
     imgs: {
         type: Array,
         default: []
@@ -29,4 +29,4 @@ const bugsSchema = new mongoose.Schema({
 })
 
 
-module.exports = mongoose.model('bugs', bugsSchema);
+module.exports = mongoose.model('feedbacks', feedbacksSchema);
