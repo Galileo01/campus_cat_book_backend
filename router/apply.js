@@ -38,7 +38,7 @@ router.post('/apply/deal', async (req, res, next) => {
 router.get('/apply/get', async (req, res, next) => {
     let { limit, offset } = req.query;
     const filter = req.query;
-    //删除 requy 上的 offset 和limit 属性， 防止影响 查询
+    //删除 offset 和limit 属性， 防止影响 查询
     delete filter.offset;
     delete filter.limit;
     console.log(filter);
@@ -46,10 +46,8 @@ router.get('/apply/get', async (req, res, next) => {
     offset = parseInt(offset);
     try {
         const docs = await AppliesModel.find(filter).skip(offset).limit(limit).sort({ created_time: -1 });
-        // console.log(docs);
-        res.send({
-            data: docs
-        });
+        console.log(docs);
+        res.send(docs);
     }
     catch (err) {
         next(err)

@@ -11,7 +11,7 @@ const catsSchema = new mongoose.Schema({
     },
     sex: {
         type: Number,
-        default: -1  // -1 ：未知 0 male 1:female
+        default: 0  //0 male 1:female
     },
     //猫猫状态  0 ：在校  1：毕业   2：休学
     state: {

@@ -1,6 +1,7 @@
 const router = require('express').Router();
+
 const CatsModel = require('../model/cats');
-const UsersModel = require('../model/users')
+
 
 const uploader = require('../commonjs/multerUtils').generateUploader('../public/cat/imgs');
 
@@ -68,26 +69,6 @@ router.get('/cat/get', async (req, res, next) => {
     })
 })
 
-//根据id 获取猫猫
-router.get('/cat/getById', async (req, res, next) => {
-    try {
-        const { _id } = req.query;
-        const doc = await CatsModel.findOne({ _id });
-        if (doc)
-            res.send({
-                data: doc
-            });
-        else
-            res.send({
-                msg: 'non-existent'
-            })
-    }
-    catch (err) {
-        next(err)
-    }
-
-})
-
 //上传 图片   限制一次只能上传一张  ，默认 追加到imgs 数组的末尾
 router.post('/cat/uploadImg', uploader.single('img'), async (req, res, next) => {
     try {
@@ -96,7 +77,6 @@ router.post('/cat/uploadImg', uploader.single('img'), async (req, res, next) => 
         // console.log(file);
         if (file) {
             //添加到 imgs 属性末尾
-
             const { n, ok } = await CatsModel.updateOne({ name }, { $addToSet: { imgs: file.filename } });// push 的同时 在名称上保证图片 不重复
             if (n + ok === 2) {
                 res.send({ data: file.filename })
@@ -145,5 +125,17 @@ router.post('/cat/replaceImgByIndex', uploader.single('img'), (req, res, next) =
     })
 })
 
+//获取 猫猫话题列表
+router.get('/cat/getTopics', async (req, res, next) => {
+    try {
+        const docs = await CatsModel.find();
+        res.send({
+            data: docs.map(doc => doc.name)
+        })
+    }
+    catch (err) {
+        next(err)
+    }
+})
 
 module.exports = router;

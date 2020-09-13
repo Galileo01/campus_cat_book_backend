@@ -1,10 +1,8 @@
-const fs = require('fs');
-const path = require('path');
 const router = require('express').Router();
 const UsersModel = require('../model/users');
 const CatsModel = require('../model/cats');
 const TweetsModel = require('../model/tweets')
-const uploader = require('../commonjs/multerUtils').generateUploader('../public/user/avatar');
+const uploader = require('../commonjs/multerUtils').generateUploader('../public/user/img/avatar');
 
 //用户使用 自己的微信登录
 
@@ -35,10 +33,11 @@ router.post('/user/login', async (req, res, next) => {
 //获取用户信息
 
 router.get('/user/getInfo', async (req, res, next) => {
-    const { name, _id } = req.query;
-    const filter = _id ? { _id } : { name };
+    const { name } = req.query;
     try {
-        const doc = await UsersModel.findOne(filter, { tweets_co: false, cats_co: false });
+        const doc = await UsersModel.findOne({
+            name
+        }, { tweets_co: false, cats_co: false });
         if (!doc)
             res.send({
                 msg: '不存在对应的用户'
@@ -76,23 +75,25 @@ router.post('/user/updateInfo', async (req, res, next) => {
 })
 
 //更新用户头像  测试 阶段
-//TODO 更新用户头像的时候 删除原来上传到 服务器的头像
 router.post('/user/updateAvatar', uploader.single('avatar'), async (req, res, next) => {
     try {
         const { file, body: { name } } = req;
         if (file) {
             // console.log(file);
             //更新数据库
-            const doc = await UsersModel.findOne({ name });
-            const preFilename = doc.avatar;
-            fs.unlinkSync(path.join(__dirname, '../public/user/avatar', preFilename));//删除原有的 头像
-
-            doc.avatar = file.filename;
-            doc.save();
-            res.send({
-                data: file.filename
+            const { n, ok } = await UsersModel.updateOne({ name }, {
+                $set: {
+                    avatar: file.filename
+                }
+            });
+            if (n + ok === 2) {
+                res.send({
+                    data: file.filename
+                })
+            }
+            else res.send({
+                msg: 'update failed'
             })
-
         }
         else res.send({
             msg: 'update failed'
@@ -110,16 +111,17 @@ router.post('/user/collectCat', async (req, res, next) => {
     if (!name || !catId)
         return res.sendStatus(400);
     try {
-        const doc = await UsersModel.findOne({ name })
-        if (doc.cats_co.includes(catId))
-            return res.send({
-                msg: 'already collected'
-            })
-        doc.cats_co.push(catId)
-        doc.save();
-        res.send({
-            data: catId
+        const { n, ok } = await UsersModel.updateOne({ name }, {
+            $addToSet: { cats_co: catId }    //id 唯一
         })
+        if (n + ok === 2) {
+            res.send({})
+        }
+        else {
+            res.send({
+                msg: 'collect failed'
+            })
+        }
     }
     catch (err) {
         next(err)
@@ -128,21 +130,24 @@ router.post('/user/collectCat', async (req, res, next) => {
 })
 
 //取消收藏 猫猫
-router.post('/user/cancelCollectCat', async (req, res, next) => {
-    const { name, catId } = req.body;
-    const { n, ok } = await UsersModel.updateOne({ name }, { $pull: { cats_co: catId } })
-
-    if (n + ok === 2) {
-        res.send({
-            data: { name, catId }
-        })
-    }
-    else {
-        res.send({
-            msg: 'oprate failed'
-        })
-    }
-
+router.delete('/user/cancelCollectCat', (req, res, next) => {
+    const { name, catId } = req.query;
+    UsersModel.findOne({ name }, (err, doc) => {
+        if (err)
+            return next(err);
+        const index = doc.cats_co.findIndex(id => id === catId);
+        if (!index)
+            res.send({
+                msg: 'oprate failed'
+            })
+        else {
+            doc.cats_co.splice(index, 1);
+            doc.save();
+            res.send({
+                data: doc.cats_co
+            })
+        }
+    })
 })
 
 //收藏动态
@@ -152,22 +157,19 @@ router.post('/user/collectTweet', async (req, res, next) => {
         return res.sendStatus(400);
     try {
         //更新用户  tweets_co 属性
-        const doc = await UsersModel.findOne({ name });
-        if (doc.tweets_co.includes(tweetId))
-            return res.send({
-                msg: 'already collected'
-            })
-        doc.tweets_co.push(tweetId)
-        doc.save();
-        const { n, ok } = await TweetsModel.updateOne({ _id: tweetId }, { $inc: { collectCount: 1 } });
-        if (n + ok !== 2) {
-            return res.send({
+        const { n, ok } = await UsersModel.updateOne({ name }, {
+            $addToSet: { tweets_co: tweetId }    //id 唯一
+        })
+        //跟新对应 动态 collectCount 属性
+        const { n: n1, ok: ok1 } = await TweetsModel.updateOne({ _id: tweetId }, { $inc: { collectCount: 1 } })
+        if (n + ok === 2 && n1 + ok1 === 2) {
+            res.send({})
+        }
+        else {
+            res.send({
                 msg: 'collect failed'
             })
         }
-        res.send({
-            data: tweetId
-        })
     }
     catch (err) {
         next(err)
@@ -175,40 +177,33 @@ router.post('/user/collectTweet', async (req, res, next) => {
 })
 
 //取消收藏 动态
-router.post('/user/cancelCollectTweet', async (req, res, next) => {
-    const { name, tweetId } = req.body;
-
-    const { n, ok } = await UsersModel.updateOne({ name }, { $pull: { tweets_co: tweetId } });
-    if (n + ok === 2) {
-        const doc = await TweetsModel.findOne({ _id: tweetId });
-        doc.collectCount--;
-        doc.save();
-        res.send({
-            data: tweetId
-        })
-    }
-    else {
-        res.send({
-            msg: 'oprate failed'
-        })
-    }
-
+router.delete('/user/cancelCollectTweet', (req, res, next) => {
+    const { name, tweetId } = req.query;
+    UsersModel.findOne({ name }, (err, doc) => {
+        if (err)
+            return next(err);
+        const index = doc.tweets_co.findIndex(id => id === tweetId);
+        if (!index)
+            res.send({
+                msg: 'oprate failed'
+            })
+        else {
+            doc.tweets_co.splice(index, 1);
+            doc.save();
+            res.send({
+                data: doc.tweets_co
+            })
+        }
+    })
 })
 
 //获取用户 收藏的猫猫列表
 router.get('/user/getCats_co', async (req, res, next) => {
-    let { name, _id, offset, limit } = req.query;
-    const filter = _id ? { _id } : { name };
+    let { name, offset, limit } = req.query;
     try {
-        const { cats_co } = await UsersModel.findOne(filter);
-        if (cats_co.length === 0) {
-            return res.send({
-                data: []
-            })
-        }
+        const { cats_co } = await UsersModel.findOne({ name });
         const cats = [];
         limit = limit > 0 ? limit : cats_co.length;//保证 limit 有效
-
         for (const [index, _id] of cats_co.entries()) {
             const cat = await CatsModel.findOne({ _id });
             cats.push(cat);
@@ -229,15 +224,9 @@ router.get('/user/getCats_co', async (req, res, next) => {
 
 //获取 用户收藏的 帖子                    
 router.get('/user/getTweets_co', async (req, res, next) => {
-    let { name, _id, offset, limit } = req.query;
-    const filter = _id ? { _id } : { name };
+    let { name, offset, limit } = req.query;
     try {
-        const { tweets_co } = await UsersModel.findOne(filter);
-        if (tweets_co.length === 0) {
-            return res.send({
-                data: []
-            })
-        }
+        const { tweets_co } = await UsersModel.findOne({ name });
         limit = limit > 0 ? limit : tweets_co.length;//保证 limit 有效
         const tweets = [];
         for (const [index, _id] of tweets_co.entries()) {
@@ -257,28 +246,5 @@ router.get('/user/getTweets_co', async (req, res, next) => {
 
 })
 
-
-//获取 用户 收藏的猫猫 生成的话题列表
-router.get('/user/getMyTopics', async (req, res, next) => {
-
-    try {
-        const { cats_co } = await UsersModel.findOne({ name: req.query.user });
-        if (cats_co.length === 0)
-            return res.send({
-                data: []
-            })
-        const topics = [];
-        for (const [i, _id] of cats_co.entries()) {
-            const { name } = await CatsModel.findOne({ _id });
-            topics.push(name)
-        }
-        res.send({
-            data: topics
-        })
-    }
-    catch (err) {
-        next(err)
-    }
-})
 
 module.exports = router;    

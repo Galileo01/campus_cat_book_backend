@@ -4,10 +4,9 @@ const catRouter = require('./cat')
 const tweetRouter = require('./tweet')
 const commentRouter = require('./comment')
 const applyRouter = require('./apply')
-const feedbackRouter=require('./feedback')
-const scoreRouter=require('./score')
+const bugRouter=require('./bug')
 
-router.use([userRouter, catRouter, tweetRouter, commentRouter, applyRouter,feedbackRouter,scoreRouter])
+router.use([userRouter, catRouter, tweetRouter, commentRouter, applyRouter,bugRouter])
 
 
 
